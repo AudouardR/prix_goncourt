@@ -80,7 +80,8 @@ class BookDao(Dao[Book]):
 
         return None
 
-    def get_book(self, record: tuple[Any, ...]) -> Book | None:
+    @staticmethod
+    def get_book(record: tuple[Any, ...]) -> Book | None:
         """
         Convertir un livre récupéré de la BDD en objet
         """
@@ -176,6 +177,9 @@ class BookDao(Dao[Book]):
                 main_character_dao.delete(main_character)
 
         with Dao.connection.cursor() as cursor:
+            sql = "DELETE FROM selection_book WHERE isbn=%s"
+            cursor.execute(sql, (book.isbn,))
+
             sql = "DELETE FROM book WHERE isbn=%s"
             cursor.execute(sql, (book.isbn,))
 

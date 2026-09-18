@@ -116,7 +116,7 @@ class SelectionDao(Dao[Selection]):
             cursor.execute(sql, (selection.selection_nbr,))
             record = cursor.fetchone()
             if record is not None:
-                # Supprimer les livres retirés de l'objet selection dans la BDD
+                # Supprimer les livres absents de l'objet selection dans la BDD
                 sql = """
                     SELECT sb.*
                     FROM selection_book sb
@@ -128,12 +128,14 @@ class SelectionDao(Dao[Selection]):
                 record_books = cursor.fetchall()
                 for record_book in record_books:
                     book_dao = BookDao()
+                    # Convertir l'enregistrement de livre sélectionné dans la BDD en objet Book
                     book_to_delete = book_dao.get_book(record_book)
+                    # S'il n'est pas dans les livres de la sélection, le retirer de la table SelectionBook
                     if book_to_delete not in selection.books_selected:
                         sql = "DELETE FROM selection_book WHERE selection_nbr = %s AND isbn = %s"
                         cursor.execute(sql, (selection.selection_nbr, book_to_delete.isbn))
 
-                # Ajouter les nouveaux livres dans la table SelectionBook
+                # Ajouter les nouveaux livres de l'objet selection dans la table SelectionBook
                 for book_selected in selection.books_selected:
                     # Vérifier s'ils sont déjà dans la table
                     sql = "SELECT * FROM selection_book WHERE selection_nbr = %s AND isbn = %s"
@@ -154,13 +156,13 @@ class SelectionDao(Dao[Selection]):
         :param selection: sélection dont l'entité Selection correspondante est à supprimer
         :return: True si la suppression a pu être réalisée
         """
-        # Supprimer les personnages principaux de la sélection
-        if selection.main_characters is not None:
-            main_character_dao: MainCharacterDao = MainCharacterDao()
-            for main_character in selection.main_characters:
-                main_character_dao.delete(main_character)
 
         with Dao.connection.cursor() as cursor:
+            # Retirer tous les livres de la sélection de la table SelectionBook
+            sql = "DELETE FROM selection_book WHERE selection_nbr=%s"
+            cursor.execute(sql, (selection.selection_nbr,))
+
+            #  Retirer la sélection de la table Selection
             sql = "DELETE FROM selection WHERE selection_nbr=%s"
             cursor.execute(sql, (selection.selection_nbr,))
 
